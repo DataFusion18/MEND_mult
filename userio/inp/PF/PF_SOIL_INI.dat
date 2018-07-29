@@ -1,0 +1,16 @@
+Clay: 1/1000; Depth: cm				
+SOC/POC/MOC/MBC: mgC/cm3					
+ID	Property	 Value
+1	SOC			27.51
+2	TON			1.74
+3	POC			9.12
+4	MOC			18.39
+5	MBC			0.22
+6	DOC			0.24
+7	EP1			0.0011
+8	EP2		    0.0011
+9	EM			0.0014
+10	Sand		320
+11	Silt		270
+12	Clay		410
+13	Depth		10
