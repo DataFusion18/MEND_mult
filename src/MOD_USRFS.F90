@@ -667,7 +667,7 @@ CONTAINS
         return
     END !!subroutine selectINT
     !------------------------------------------------------------------
-    !!    subroutine: randomly select m distinct INTEGERs from the range [1..npg]      
+   
     SUBROUTINE CountUniqueElement(n_in,array_in,n_out,array_out)
         !!ARGUMENTS:
         INTEGER, intent(in) :: n_in

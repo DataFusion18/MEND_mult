@@ -285,8 +285,8 @@ REAL(8) function fMEND_OBJ(xx, sPAR, sINI, sOUT)
             end do
 
             write(sINI%iFout_SIM_obs,'(/,a)')"PARAMETERS & CRITERIA:"
-            sRead = "    OBJ-1:"
-            write(format510,*)"(/,",sINI%nPar,"(a12),","' |  CRITERION'",",a10, I10)"                
+            write(format510,*)"(/,",sINI%nPar,"(a12),","' |  CRITERION'",",a10, I10)"   
+!            sRead = "    OBJ-1:"
     !        write(sINI%iFout_SIM_obs,format510)sPAR_SCE%parName,sRead,sINI%nVARopt
             write(format521,*)"(",sINI%nPar,"f12.6,","' | '",",f10.4,",sINI%nVARopt,"f10.4)"
             write(sINI%iFout_SIM_obs,format521) xx,fMEND_OBJ,sINI%rOBJ
@@ -361,6 +361,7 @@ REAL(8) function fMEND_OBJ(xx, sPAR, sINI, sOUT)
     
     rVARid = DBLE(VARid)  !!convert to real(8) for sorting
     call sort(k,2,dOBS_SIM,rVARid)
+!! count unique VARid, i.e., # of variable for calibration 
     call CountUniqueElement(k,VARid,sINI%nVARopt_cases,VARid_unique)
        
 !    ALLOCATE(sINI%rOBJ(sINI%nVARopt_cases))
@@ -377,7 +378,8 @@ REAL(8) function fMEND_OBJ(xx, sPAR, sINI, sOUT)
             ibeg = sum(VARid_unique(1:(i-1),2)) + 1
         end if
         iend = sum(VARid_unique(1:i,2))
-        if(VARid_unique(i,2).gt.10) then  !!NSEC
+!        if(VARid_unique(i,2).gt.10) then  !!NSEC
+        if(trim(sINI%VARobj_cases(i)).eq."NSEC") then
             sINI%rOBJ_cases(i) = f1NSE(VARid_unique(i,2), dOBS_SIM(ibeg:iend,1), dOBS_SIM(ibeg:iend,2), const_FillValue)
         else !! "MARE"
             sINI%rOBJ_cases(i) = fMARE(VARid_unique(i,2), dOBS_SIM(ibeg:iend,1), dOBS_SIM(ibeg:iend,2), const_FillValue)
@@ -467,6 +469,7 @@ SUBROUTINE subMEND_output_rate(sDate,ihr, sINI, sPAR, sINP, sOUT)
     REAL(8) kMB_in          !!Equivalent 1st-order assimilation rate of total microbes
     REAL(8) phi             !!DOC saturation level; phi=DOC/(DOC+Ks)
     REAL(8) rMBa            !!Active Fraction of Microbes, r=MBCA/MBC
+    REAL(8) CUE             !!Apparent Microbial Carbon Use Efficiency, CUE=[DOM_to_MBA - CO2_gmo - death]/DOM_to_MBA
     
     CHARACTER(LEN=2)  str2
     CHARACTER(LEN=10) sDateHr
@@ -487,9 +490,14 @@ SUBROUTINE subMEND_output_rate(sDate,ihr, sINI, sPAR, sINP, sOUT)
     kMBd = (sOUT%CFLUX%MBCD_to_MBCA + sOUT%CFLUX%CO2_maintn_dorm)/sINP%CPOOL%MBCD
     kMB = (sOUT%CFLUX%CO2_gm + sOUT%CFLUX%MBC_PM)/sINP%CPOOL%MBC
     kMB_in = sOUT%CFLUX%DOC_to_MBC/sINP%CPOOL%MBC       
+    if (sOUT%CFLUX%DOC_to_MBC > 0.D0) then
+        CUE = (sOUT%CFLUX%DOC_to_MBC - sOUT%CFLUX%CO2_gm - sOUT%CFLUX%MBC_PM)/sOUT%CFLUX%DOC_to_MBC
+    else
+        CUE = 0.D0
+    end if
 !    if (sINI%iModel .eq. 0) then
     write(sINI%iFout_rate_hour, '(A10,30e20.3)') &
-            sDateHr, kPOC1,kPOC2,kMOC,kDOC,kMBa,kMBa_in,kMBd,kMBd_in,kMB,kMB_in,phi,rMBa, &
+            sDateHr, kPOC1,kPOC2,kMOC,kDOC,kMBa,kMBa_in,kMBd,kMBd_in,kMB,kMB_in,phi,rMBa,CUE, &
             sOUT%RE,sOUT%TOCbeg,sOUT%TOCend,sOUT%TOCinp,sOUT%TOCout
 !    end if
 END !!subroutine subMEND_output_rate
@@ -569,6 +577,9 @@ SUBROUTINE subMEND_RUN(xx, sPAR, sINI, sOUT)
     
     do iday = 1,nday
         CALL sDate_After(iday,sINI%sDate_beg_sim,sDate)
+        if(sINI % iModel.eq.0) then
+            write(*,'(a6,a10,f16.2,a,a,$)')'Date=',sDate,iday*100.0/nday,'%',cBackspace
+        end if
 ! print*, 'iday=',iday,sDate
  
         do lp = 1, 24  !!
@@ -1059,7 +1070,8 @@ SUBROUTINE subMEND_PAR(xx, sPAR, sINI)
     tp_scalar = fTArh(sCase, tp, const_Tref)
     wp_scalar = fSWP(wp, BIOME, SOM)
     pH_scalar = fpH(sCase,pH)
-    sPAR % VdPOC(2)     = xx(4)*tp_scalar*wp_scalar*pH_scalar  !!set Vd_cel = Vd_lig
+!    sPAR % VdPOC(2)     = xx(4)*tp_scalar*wp_scalar*pH_scalar
+    sPAR % VdPOC(2)     = xx(3)*tp_scalar*wp_scalar*pH_scalar  !!set Vd_cel = Vd_lig
     
     sCase = "Km"
     tp_scalar = fTArh(sCase, tp, const_Tref)
@@ -1070,7 +1082,8 @@ SUBROUTINE subMEND_PAR(xx, sPAR, sINI)
     tp_scalar = fTArh(sCase, tp, const_Tref)
     wp_scalar = fSWP(wp, BIOME, SOM)
     pH_scalar = fpH(sCase,pH)
-    sPAR % VdMOC        = xx(5)*tp_scalar*wp_scalar*pH_scalar ![mg MOC/mg ENZMAOC/h], maximum reaction rate for conversion of MAOC by ENZMAOC
+!    sPAR % VdMOC        = xx(5)*tp_scalar*wp_scalar*pH_scalar ![mg MOC/mg ENZMAOC/h], maximum reaction rate for conversion of MAOC by ENZMAOC
+    sPAR % VdMOC        = xx(3)*tp_scalar*wp_scalar*pH_scalar 
     
     sCase = "Km"
     tp_scalar = fTArh(sCase, tp, const_Tref)
@@ -1119,11 +1132,11 @@ SUBROUTINE subMEND_PAR(xx, sPAR, sINI)
     sPAR % Yg = fT_CUE(tp, const_Tref, CUE_slope, CUE_ref) ![-], carbon use efficiency in uptake of DOC by MB 
     
     !![7] MICROBIAL MORTALITY
-    sPAR%wdie = xx(22)
+!    sPAR%wdie = xx(22)
     sPAR%gamma= xx(23) 
-    wp_scalar_low =  fSWP_Death(wp,SWPmin,sPAR%wdie)  
+!    wp_scalar_low =  fSWP_Death(wp,SWPmin,sPAR%wdie)  
 !    sPAR % rMORT = (1.D0 - sPAR%pENZP - sPAR%pENZM)*Vm0*wp_scalar_low !!wgs: 6/19/2015,  !!tp_scalar
-    sPAR % rMORT = (sPAR%gamma*Vm0)*wp_scalar_low !!wgs: 6/19/2015,  !!tp_scalar
+!    wp_scalar_low = fSWP_A2D(wp, sPAR % SWP_A2D, sPAR%wdorm)  !!negative effect  !!wdie
        
     !![8] MICROBIAL DORMANCY & RESUSCITATION
     sPAR % beta       = xx(24) !beta = Vm_dormant/Vm
@@ -1140,6 +1153,8 @@ SUBROUTINE subMEND_PAR(xx, sPAR, sINI)
     sPAR % VmA2D = Vm0*tp_scalar*wp_scalar_low 
     sPAR % VmD2A = Vm0*tp_scalar*wp_scalar
     
+    sPAR % rMORT = (sPAR%gamma*Vm0)*wp_scalar_low 
+
 END !!subroutine subMEND_PAR
 !-----------------------------------------------------------------------------
 
@@ -1520,21 +1535,21 @@ REAL(8) function fSWP_OPT(SWP)
     !SWP Scalar for SOM (lignin) decomposition
     !Hansen et al (1990), DAISY Model, page 105, Eq (6-16)
     
-    REAL(8), PARAMETER :: SWPmin = -dexp(4.5*dlog(10d0))   !![MPa]
-    REAL(8), PARAMETER :: SWPlow = -dexp(0.5*dlog(10d0))
-    REAL(8), PARAMETER :: SWPhigh= -dexp(-0.5*dlog(10d0))
-    REAL(8), PARAMETER :: SWPmax = -dexp(-2.0*dlog(10d0))
+    REAL(8), PARAMETER :: SWPmin = -dexp(2.5*dlog(10d0))   !![MPa]
+    REAL(8), PARAMETER :: SWPlow = -dexp(-1.5*dlog(10d0))
+    REAL(8), PARAMETER :: SWPhigh= -dexp(-2.5*dlog(10d0))
+    REAL(8), PARAMETER :: SWPmax = -dexp(-4.0*dlog(10d0))
     !!ARGUMENTS:
     REAL(8) SWP ![MPa]
     
     if (SWP.le.SWPmin) then
         fSWP_OPT = 0.0d0  
     else if (SWP.le.SWPlow) then
-        fSWP_OPT = 1.625-0.25*dlog10(1.0d2*dabs(SWP))
+        fSWP_OPT = 0.625-0.25*dlog10(dabs(SWP))
     else if (SWP.le.SWPhigh) then
         fSWP_OPT = 1.0d0
     else if (SWP.le.SWPmax) then
-        fSWP_OPT = 0.6+0.4/1.5*dlog10(1.0d2*dabs(SWP))
+        fSWP_OPT = (2.5+0.4*dlog10(dabs(SWP)))/1.5
     else
         fSWP_OPT = 0.6
     end if
@@ -1621,15 +1636,15 @@ END !!function fSWP_D2A
 REAL(8) FUNCTION fpH(sCase,pH)
 !    REAL(8) fpH0 !! function
     !!ARGUMENTS:
-    CHARACTER(len=10), intent(inout) :: sCase
+    CHARACTER(len=*) , intent(in) :: sCase
     REAL(8)          , intent(in) :: pH !pH value
     
     !!LOCAL VARIABLES
     REAL(8) pHopt !optimum pH
     REAL(8) pHsen !pH sensitivity
     
-    sCase = trim(sCase)
-    SELECT CASE (sCase)
+!    sCase = trim(sCase)
+    SELECT CASE (trim(sCase))
         CASE ("BG")  !! Beta-glucosidase
             pHopt = 5.6
             pHsen = 1.7
@@ -1745,6 +1760,12 @@ SUBROUTINE sOUT_OPT_h(nVAR,nHour,iHour,dSIM,sOUT,VARopt_int,vENZ)
                 dSIM(iHour,j) = sOUT%CPOOL%ENZP(1)*vENZ(1)  !!sPAR%VdPOC(1)
             case (10)   !!ENZ_CEL, ENZ Activity
                 dSIM(iHour,j) = sOUT%CPOOL%ENZP(2)*vENZ(2)  !!sPAR%VdPOC(2)
+            case (11)    !!CO2_TOT
+                dSIM(iHour,j) = sOUT%CPOOL%CO2
+            case (12)    !!CO2_TOT: 13C or 14C
+                dSIM(iHour,j) = sOUT%CPOOLI(2)%CO2
+            case (13)    !!CO2_TOT: 12C
+                dSIM(iHour,j) = sOUT%CPOOLI(1)%CO2
             case default
                 dSIM(iHour,j) = sOUT%CFLUX%CO2_gm
         end select
@@ -1925,9 +1946,10 @@ SUBROUTINE sOUT_ALL_tscale(sFile_hour,sFile_t,nRow_skip,nVAR,sDate_beg,sDate_end
     INTEGER i,j 
     INTEGER nhr,nda,nmo, ibeg, iend,nbe
     INTEGER iRead
+    CHARACTER(LEN=10) sDateHr
     CHARACTER(len=8) sDate
     CHARACTER(len=6) sYM
-    CHARACTER(len=1000)sRead1,sRead2
+    CHARACTER(len=2000)sRead1,sRead2
     CHARACTER(len=200)format1
     REAL(8), DIMENSION(24,nVAR)::dSIM_h1
     REAL(8), DIMENSION(744,nVAR)::dSIM_h2 !!hours in 1 month, at most =24*31
@@ -1964,53 +1986,58 @@ SUBROUTINE sOUT_ALL_tscale(sFile_hour,sFile_t,nRow_skip,nVAR,sDate_beg,sDate_end
     
     select case (tstep)
         case (1) !!daily
-            do i = 1,nda
-                ibeg = 1
-                iend = 24
-                nbe = iend - ibeg + 1
-                do j=1,24 !!24 hours in 1 day
-                    read(1,*)iRead,dSIM_h1(j,1:nVAR)
+            if(nda > 0) then
+                do i = 1,nda
+                    ibeg = 1
+                    iend = 24
+                    nbe = iend - ibeg + 1
+                    do j=1,24 !!24 hours in 1 day
+                        read(1,*)sDateHr,dSIM_h1(j,1:nVAR)
+                    end do
+                    do j=1,nVAR
+                        if(flag_avg.eq.1) then
+                            dSIM_t(j) = fAVG2(iend,dSIM_h1(:,j),ibeg,iend,const_FillValue)
+        !                    write(*,*)i,dSIM_t(i)
+                        else
+                            dSIM_t(j) = dSIM_h1(iend,j)
+                        end if
+                    end do
+                    CALL sDate_After(i,sDate_beg,sDate)
+                    write(2,format1)sDate,dSIM_t
                 end do
-                do j=1,nVAR
-                    if(flag_avg.eq.1) then
-                        dSIM_t(j) = fAVG2(iend,dSIM_h1(:,j),ibeg,iend,const_FillValue)
-    !                    write(*,*)i,dSIM_t(i)
-                    else
-                        dSIM_t(j) = dSIM_h1(iend,j)
-                    end if
-                end do
-                call sDate_After(i,sDate_beg,sDate)
-                write(2,format1)sDate,dSIM_t
-            end do
+            end if !! nda > 0
         case (2) !!monthly
-            iyr = iyr0
-            imo = imo0
-            nda = 0
-            do i=1,nmo
-                nda_in_ym = nDaysofMon(iyr,imo)
-!                write(*,*)'iyr,imo,nday = ',iyr,imo,nda_in_ym
-                ibeg = 1
-                iend = nda_in_ym*24
-                do j = ibeg,iend
-                    read(1,*)iRead,dSIM_h2(j,1:nVAR)
-                end do
-                do j=1,nVAR
-                    if(flag_avg.eq.1) then
-                        dSIM_t(j) = fAVG2(iend,dSIM_h2(:,j),ibeg,iend,const_FillValue)
+            if(nmo > 0) then
+                iyr = iyr0
+                imo = imo0
+                nda = 0
+                do i=1,nmo
+                    nda_in_ym = min(nda, nDaysofMon(iyr,imo))  !!10/2/2019: temporarily used when nmo = 1 and nda = a few days within a month; need further revision if any dates are used for beginning and ending 
+    !                write(*,*)'iyr,imo,nday = ',iyr,imo,nda_in_ym
+                    ibeg = 1
+                    iend = nda_in_ym*24
+                    do j = ibeg,iend
+                        read(1,*)sDateHr,dSIM_h2(j,1:nVAR)
+                    end do
+                    do j=1,nVAR
+                        if(flag_avg.eq.1) then
+                            dSIM_t(j) = fAVG2(iend,dSIM_h2(:,j),ibeg,iend,const_FillValue)
+                        else
+                            dSIM_t(j) = dSIM_h2(iend,j)
+                        end if
+                    end do
+                    imo = imo + 1
+                    if(imo.le.12) then
+                        iyr = iyr
                     else
-                        dSIM_t(j) = dSIM_h2(iend,j)
+
+                        iyr = iyr+1
+                        imo = 1
                     end if
+                    CALL sYM_After(i,sDate_beg(1:6),sYM)
+                    write(2,format1)sYM,dSIM_t
                 end do
-                imo = imo + 1
-                if(imo.le.12) then
-                    iyr = iyr
-                else
-                    iyr = iyr+1
-                    imo = 1
-                end if
-                call sYM_After(i,sDate_beg(1:6),sYM)
-                write(2,format1)sYM,dSIM_t
-            end do
+            end if !!(nmo>0)
 !        case(3) !!seasonal
 !            
 !        case(4) !!yearly
@@ -2071,11 +2098,11 @@ SUBROUTINE sOUT_tscale(dirout,sDate_beg,sDate_end)
     print*,">>>[4] DERIVED RATEs:"
     sFile_inp = trim(dirout)//"RATE_hour.out"
     sFile_out = trim(dirout)//"RATE_day.out"
-    nRow_skip=2; nVAR=17; tstep=1; flag_avg=1
+    nRow_skip=2; nVAR=18; tstep=1; flag_avg=1
     call sOUT_ALL_tscale(sFile_inp,sFile_out,nRow_skip,nVAR, sDate_beg, sDate_end,tstep,flag_avg)
     
     sFile_out = trim(dirout)//"RATE_mon.out"
-    nRow_skip=2; nVAR=17; tstep=2; flag_avg=1
+    nRow_skip=2; nVAR=18; tstep=2; flag_avg=1
     call sOUT_ALL_tscale(sFile_inp,sFile_out,nRow_skip,nVAR, sDate_beg, sDate_end,tstep,flag_avg)
     call system('gzip -f '//sFile_inp)
     print*,">>>Convert OUTPUTs from HOURLY to DAILY & MONTHLY: END"

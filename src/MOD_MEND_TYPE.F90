@@ -8,19 +8,22 @@ MODULE MOD_MEND_TYPE
      ! ``TYPE name ... END TYPE''
      ! ``RECORD /name/ variable'' becomes ``TYPE(name) variable''
     INTEGER, PARAMETER:: const_nVARc = 13                           !# of state variables
-    INTEGER, PARAMETER:: const_nFLXc = 27                           !# of state variables
+    INTEGER, PARAMETER:: const_nFLXc = 27                           !# of flux variables
     
     INTEGER, PARAMETER:: const_nPOC = 2                             !# of particular organic carbon pools
     INTEGER, PARAMETER:: const_nISO = 2                             !# of isotopes, e.g., C12, C14, C13
     
     real(8), PARAMETER:: const_R = 8.314d0                          ![J/mol/K],universal gas constant
     real(8), PARAMETER:: const_tmp_C2K = 273.15d0                   !conversion of degree C to degree K
-    real(8), PARAMETER:: const_Rstd(const_nISO - 1) = (/1d-12/)     !C14/C12
+!    real(8), PARAMETER:: const_Rstd(const_nISO - 1) = (/1d-12/)     !C14/C12
+    real(8), PARAMETER:: const_Rstd(const_nISO - 1) = (/0.0112372/)   !C13/C12, Pee Dee Belemnite (PDB) Standard
     real(8), PARAMETER:: const_cm2MPa = 98d-6                       !1cm water column 
     
     real(8), PARAMETER:: const_Tref = 20.d0                         ![degree c],reference temperature
     real(8), PARAMETER:: const_SWPmin = -3.0d4                        ![MPa], lowest SWP
     real(8), PARAMETER:: const_FillValue = -999d0                   !filled value
+    
+    character, PARAMETER :: cBackspace = char(13)
       
 !-----------------------------------------------------------------------------!   
 !Adsorption and Desorption of DOC
@@ -169,6 +172,7 @@ MODULE MOD_MEND_TYPE
          INTEGER iFout_SIM_obs_cases                    !file unit for response variables matching observations for all cases
          INTEGER nVARopt_cases                          !# of observed response variables for optimization
          REAL(8) VARobjw_cases(10)                      !VAR objective function weighting factor (any number, will be normalized)
+         CHARACTER(len=4) VARobj_cases(10)              !VAR objective function, e.g.,  "NSEC", "MARE"
          REAL(8) rOBJ_cases(10)                         !Nash-Sutcliffe Efficency Coefficient, rNSE(1): mean NSEC, rNSE(2:nObs_var+1): individual NSEC for nObs_var 
          REAL(8) rOBJw_cases(10)                        !obj weighting factor
          CHARACTER(len=20),ALLOCATABLE:: CASEname(:)    !case names  

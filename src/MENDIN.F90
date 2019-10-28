@@ -116,6 +116,7 @@ SUBROUTINE MENDIN(sPAR_SCE,sINI)
       read(iFin,*)sRead                 !!Line 24: dash line
       read(iFin,*)sRead                 !!Line-25, Comments
       read(iFin,*)sINI%VARobjw_cases(1:10) !!Line-26
+      read(iFin,*)sINI%VARobj_cases(1:10)
       
 !c  READ THE INITIAL PARAMETER VALUES AND THE PARAMETER BOUNDS
       read(iFin,*)sRead                 !!Line 27
@@ -188,6 +189,7 @@ SUBROUTINE MENDIN(sPAR_SCE,sINI)
       !!3 output files for model optimization
       !!--------------------------------------------------------------------------
 !      sINI%dirout = trim(sINI%dirout)//"/"//trim(sINI%SITE)//"_"
+      CALL system('mkdir '//sINI%dirout)
       sINI%dirout = trim(sINI%dirout)//"/"
       sfilename_full = trim(sINI%dirout)//"OPT_all.out"
       open(unit=sPAR_SCE%iFout1,file=sfilename_full,status='unknown')

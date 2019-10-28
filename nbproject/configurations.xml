@@ -58,7 +58,7 @@
       <item path="src/MEND_main.F90" ex="false" tool="2" flavor2="0">
         <fortranCompilerTool>
           <additionalDep>${OBJECTDIR}/src/MOD_USRFS.o ${OBJECTDIR}/src/MOD_MEND_TYPE.o ${OBJECTDIR}/src/MOD_MEND.o ${OBJECTDIR}/src/MOD_OPT_TYPE.o ${OBJECTDIR}/src/MOD_OPT.o</additionalDep>
-          </fortranCompilerTool>
+        </fortranCompilerTool>
       </item>
       <item path="src/MOD_MEND.F90" ex="false" tool="2" flavor2="0">
         <fortranCompilerTool>

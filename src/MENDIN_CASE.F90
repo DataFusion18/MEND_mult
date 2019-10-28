@@ -56,8 +56,12 @@ SUBROUTINE MENDIN_CASE(iCase,sINI)
       real(8) rRead
       INTEGER iRead
       real(8) vg_SWCres,vg_SWCsat,vg_alpha,vg_n!!van-Genuchten equation
+      
+      character(len=20)   :: Name_POOL(const_nVARc)
 
-!      write (*,*) '>>ENTER SUBROUTINE <MENDIN_CASE>'
+      DATA Name_POOL /"SOC","POC1","POC2","MOC","QOC","DOC","MBC","MBCA","MBCD",&
+                                "ENZ_POC1","ENZ_POC2","ENZ_MOC","CO2_TOT"/
+      !      write (*,*) '>>ENTER SUBROUTINE <MENDIN_CASE>'
 
 !c  INITIALIZE I/O VARIABLES
       iFin = 10
@@ -127,8 +131,9 @@ SUBROUTINE MENDIN_CASE(iCase,sINI)
       sfilename_full = trim(dirout)//"VAR_hour.out"
       open(unit = sINI%iFout_VAR_hour, file = sfilename_full, status = 'unknown')
       write(sINI%iFout_VAR_hour,*)"Simulation_Period = ",sINI%sDate_beg_sim, " -- ",sINI%sDate_end_sim
-      write(sINI%iFout_VAR_hour,'(a10,13a20)')"Hour","SOC","POC1","POC2","MOC","QOC","DOC","MBC","MBCA","MBCD",&
-                                "ENZ_POC1","ENZ_POC2","ENZ_MOC","CO2_TOT"
+      write(sINI%iFout_VAR_hour,'(a10,100a20)')"Hour",(trim(Name_POOL(i)),i=1,const_nVARc),&
+                                                    (trim(Name_POOL(i))//"_I1",i=1,const_nVARc),&
+                                                    (trim(Name_POOL(i))//"_I2",i=1,const_nVARc)
 
       sfilename_full = trim(dirout)//"FLX_hour.out"
       open(unit = sINI%iFout_FLX_hour, file = sfilename_full, status = 'unknown')
@@ -142,7 +147,7 @@ SUBROUTINE MENDIN_CASE(iCase,sINI)
       open(unit = sINI%iFout_rate_hour, file = sfilename_full, status = 'unknown')
       write(sINI%iFout_RATE_hour,*)"Simulation_Period = ",sINI%sDate_beg_sim, " -- ",sINI%sDate_end_sim
       write(sINI%iFout_RATE_hour,'(a10,20a20)')"Hour","kPOC1","kPOC2","kMOC","kDOC","kMBa","kMBa_in","kMBd",&
-                                               "kMBd_in","kMB","kMB_in","phi","Active_Fraction",&
+                                               "kMBd_in","kMB","kMB_in","phi","Active_Fraction","CUE",&
                                                "Balance_Error","TOCbeg","TOCend","TOCinp","TOCout"
       
       sfilename_full = trim(dirout)//"PAR_hour.out"
@@ -322,7 +327,8 @@ SUBROUTINE MENDIN_CASE(iCase,sINI)
       if(sINI%nVARopt.lt.1) then
           write(*,*)'No Variables Available for Model Optimization!!!'
       end if
-        
+      close(iFin)
+      
       ALLOCATE(sINI%VARopt_int(sINI%nVARopt, 3))
       ALLOCATE(sINI%rOBJ(sINI%nVARopt))
       ALLOCATE(sINI%rOBJw(sINI%nVARopt))
